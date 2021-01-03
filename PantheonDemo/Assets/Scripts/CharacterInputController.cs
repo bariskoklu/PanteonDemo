@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class CharacterInputController : MonoBehaviour
@@ -14,11 +15,16 @@ public class CharacterInputController : MonoBehaviour
     [SerializeField]private PlayerPhase currentPlayerPhase = PlayerPhase.platforming;
 
     private Rigidbody rb;
+
     private float screenWidth;
+    private int numberOfred = 0;
+    [SerializeField] private float percentage = 0;
+
     [SerializeField] private float swerveSpeed;
     [SerializeField] private float moveSpeed;
 
     [SerializeField] private GameObject wallObject;
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -80,7 +86,7 @@ public class CharacterInputController : MonoBehaviour
     private Vector3 GetRelativeMousePositionToObjectTexture(out Texture2D texture, out Vector3 mouseClickPosition)
     {
         //Texture to texture2D
-        Texture mainTexture = wallObject.GetComponent<Renderer>().material.GetTexture("_BumpMap");
+        Texture mainTexture = wallObject.GetComponent<Renderer>().material.GetTexture("_MainTex");
 
         texture = new Texture2D(mainTexture.width, mainTexture.height, TextureFormat.RGBA32, false);
 
@@ -102,9 +108,9 @@ public class CharacterInputController : MonoBehaviour
         mouseClickPosition = Input.mousePosition;
 
         //Get the screen size
-        Vector3 screenSize = new Vector3(Screen.width, Screen.height);
+        Vector3 screenSize = new Vector3(Screen.width, Screen.height, 0);
         //Get the texture size
-        Vector3 textureSize = new Vector3(texture.width, texture.height);
+        Vector3 textureSize = new Vector3(texture.width, texture.height, 0);
         //Get the screen position of the texture (This will be the center of the image)
         Vector3 textureScreenPosition = Camera.main.WorldToScreenPoint(wallObject.transform.position);
         //Get the 0,0 position of the texture:
@@ -118,14 +124,13 @@ public class CharacterInputController : MonoBehaviour
     private void PaintSelectedPixels(Texture2D currentTexture, Vector3 relativeClickPosition)
     {
         Texture2D texture = currentTexture;
-        wallObject.GetComponent<Renderer>().material.SetTexture("_BumpMap", texture);
+        wallObject.GetComponent<Renderer>().material.SetTexture("_MainTex", texture);
 
         // RGBA32 texture format data layout exactly matches Color32 struct
         var data = texture.GetRawTextureData<Color32>();
 
         // fill texture data with a simple pattern
-        Color32 orange = new Color32(255, 255, 255, 255);
-        Color32 teal = new Color32(0, 128, 128, 255);
+        Color32 red = new Color32(255, 0, 0, 255);
         int index = 0;
         for (int y = 0; y < texture.height; y++)
         {
@@ -134,25 +139,19 @@ public class CharacterInputController : MonoBehaviour
                 if (x < relativeClickPosition.x + 100  && x > relativeClickPosition.x - 100 &&
                     y < relativeClickPosition.y + 100 && y > relativeClickPosition.y - 100)
                 {
-                    data[index] = orange;
-                }
-                index++;
-            }
-        }
-        for (int y = 0; y < texture.height; y++)
-        {
-            for (int x = 0; x < texture.width; x++)
-            {
-                if (x < relativeClickPosition.x + 100 && x > relativeClickPosition.x - 100 &&
-                    y < relativeClickPosition.y + 100 && y > relativeClickPosition.y - 100)
-                {
-                    data[index] = orange;
+                    if (!CompareTwoColors(data[index],red))
+                    {
+                        data[index] = red;
+                        numberOfred += 1;
+                    }
                 }
                 index++;
             }
         }
         // upload to the GPU
         texture.Apply();
+
+        percentage = (numberOfred * 100) / (texture.height * texture.width);
     }
 
     private void MoveCharacterLeftOrRight()
@@ -198,5 +197,20 @@ public class CharacterInputController : MonoBehaviour
     private void AddForceLeftOrRight(float horizontalInput)
     {
         rb.AddForce(new Vector3(horizontalInput * swerveSpeed * Time.deltaTime, 0));
+    }
+
+    private bool CompareTwoColors(Color32 color1, Color32 color2)
+    {
+        if (color1.r == color2.r &&
+            color1.g == color2.g &&
+            color1.b == color2.b &&
+            color1.a == color2.a)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 }
