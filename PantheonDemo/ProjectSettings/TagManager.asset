@@ -5,6 +5,10 @@ TagManager:
   serializedVersion: 2
   tags:
   - Obstacle
+  - Platform
+  - RotatingPlatform
+  - HorizontalObstacle
+  - FinishLine
   layers:
   - Default
   - TransparentFX

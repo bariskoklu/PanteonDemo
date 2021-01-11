@@ -3,54 +3,73 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
-public class CharacterInputController : MonoBehaviour
+public class CharacterInputController : CharacterClass
 {
-    enum PlayerPhase
-    {
-        platforming,
-        drawing
-    }
-
-    [SerializeField]private PlayerPhase currentPlayerPhase = PlayerPhase.platforming;
 
     private Rigidbody rb;
 
     private float screenWidth;
     private int numberOfred = 0;
     [SerializeField] private float percentage = 0;
+    [SerializeField] private float percentageToWin = 90;
 
     [SerializeField] private float swerveSpeed;
     [SerializeField] private float moveSpeed;
 
     [SerializeField] private GameObject wallObject;
-    
-    // Start is called before the first frame update
+    [SerializeField] private GameObject percantageUI;
+    [SerializeField] private GameObject gameOverUI;
+
+    [SerializeField] private BoolType isGameOver;
+
+    private bool isMovingSideWays;
+
+    private GameObject percentageUIText;
+
     void Start()
     {
         rb = gameObject.GetComponent<Rigidbody>();
         screenWidth = Screen.width;
+        percentageUIText = percantageUI.transform.GetChild(0).gameObject;
     }
 
     // Update is called once per frame
     void Update()
     {
-        Move();
+        CheckIfGameOver();
         HandleInput();
     }
+
+    private void CheckIfGameOver()
+    {
+        if (isGameOver.value)
+        {
+            currentPlayerPhase = PlayerPhase.gameOver;
+        }
+    }
+
     private void HandleInput()
     {
         switch (currentPlayerPhase)
         {
             case PlayerPhase.platforming:
+                Move();
                 MoveCharacterLeftOrRight();
                 break;
             case PlayerPhase.drawing:
                 PaintWall();
+                UpdatePercantageUI();
                 break;
             default:
                 break;
         }
+    }
+
+    private void UpdatePercantageUI()
+    {
+        percentageUIText.GetComponent<Text>().text = percentage.ToString();
     }
 
     private void PaintWall()
@@ -71,6 +90,11 @@ public class CharacterInputController : MonoBehaviour
                     }
                 }
 #else
+        if (percentage > percentageToWin)
+        {
+            HandleGameOver();
+
+        }
         if (Input.GetKey(KeyCode.Mouse0))
         {
             Texture2D currentTexture;
@@ -81,6 +105,15 @@ public class CharacterInputController : MonoBehaviour
             PaintSelectedPixels(currentTexture, relativeClickPosition);
         }
 #endif
+    }
+
+    private void HandleGameOver()
+    {
+        currentPlayerPhase = PlayerPhase.gameOver;
+        gameOverUI.SetActive(true);
+        percantageUI.SetActive(false);
+        wallObject.SetActive(false);
+        FreezeCharacterRigidbody();
     }
 
     private Vector3 GetRelativeMousePositionToObjectTexture(out Texture2D texture, out Vector3 mouseClickPosition)
@@ -136,8 +169,8 @@ public class CharacterInputController : MonoBehaviour
         {
             for (int x = 0; x < texture.width; x++)
             {
-                if (x < relativeClickPosition.x + 100  && x > relativeClickPosition.x - 100 &&
-                    y < relativeClickPosition.y + 100 && y > relativeClickPosition.y - 100)
+                if (x < relativeClickPosition.x + 25  && x > relativeClickPosition.x - 25 &&
+                    y < relativeClickPosition.y + 25 && y > relativeClickPosition.y - 25)
                 {
                     if (!CompareTwoColors(data[index],red))
                     {
@@ -156,6 +189,7 @@ public class CharacterInputController : MonoBehaviour
 
     private void MoveCharacterLeftOrRight()
     {
+        isMovingSideWays = false;
 #if UNITY_ANDROID
                 if (Input.touchCount == 1)
                 {
@@ -191,11 +225,12 @@ public class CharacterInputController : MonoBehaviour
 
     private void Move()
     {
-        transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z + (moveSpeed * Time.deltaTime));
+        transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z + (moveSpeed * Time.deltaTime / (isMovingSideWays ? 3 : 2)));
     }
 
     private void AddForceLeftOrRight(float horizontalInput)
     {
+        isMovingSideWays = true;
         rb.AddForce(new Vector3(horizontalInput * swerveSpeed * Time.deltaTime, 0));
     }
 
@@ -212,5 +247,13 @@ public class CharacterInputController : MonoBehaviour
         {
             return false;
         }
+    }
+
+    public override void HandleFinishLine()
+    {
+        currentPlayerPhase = PlayerPhase.drawing;
+        wallObject.SetActive(true);
+        percantageUI.SetActive(true);
+        FreezeCharacterRigidbody();
     }
 }

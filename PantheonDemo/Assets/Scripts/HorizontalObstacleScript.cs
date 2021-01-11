@@ -63,9 +63,5 @@ public class HorizontalObstacleScript : MonoBehaviour
                 Debug.Log("No Direction is selected for HorizontalObstacle");
             break;
         }
-        if (true)
-        {
-
-        }
     }
 }
